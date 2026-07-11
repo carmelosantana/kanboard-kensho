@@ -46,7 +46,7 @@
 <form method="post" action="<?= $this->url->href('KenshoController', 'reflection', ['plugin' => 'Kensho']) ?>" data-kensho-reflection-form>
     <?= $this->form->csrf() ?>
     <input type="hidden" name="window_days" value="<?= (int) $profile['window_days'] ?>">
-    <input type="hidden" name="score" value="<?= $alignment['score'] === null ? '' : (int) $alignment['score'] ?>">
+    <input type="hidden" name="score" value="<?= (! $profile['settings']['show_score'] || $alignment['score'] === null) ? '' : (int) $alignment['score'] ?>">
     <input type="hidden" name="discrepancies" data-kensho-discrepancies value="<?= $this->text->e(json_encode($alignment['rows'])) ?>">
     <input type="hidden" name="provider_profile" value="" data-kensho-provider-profile>
     <label><?= t('Your reflection (edit freely before saving)') ?>
@@ -57,11 +57,14 @@
 
 <?php if (! empty($profile['reflections'])): ?>
     <h3><?= t('Past reflections') ?></h3>
+    <?php if ($profile['settings']['show_score']): ?>
+        <p class="kensho-caveat"><?= t('This number is a chosen proxy, not a measurement of you or your worth. It compares two distributions you defined; the formula is: 100 − ½ × Σ|stated share − actual share|. Change your areas or their importance and it changes. You can turn it off on the "Areas & themes" tab.') ?></p>
+    <?php endif ?>
     <ul class="kensho-history">
         <?php foreach (array_reverse($profile['reflections']) as $r): ?>
             <li>
                 <time><?= $this->text->e(date('Y-m-d', (int) $r['date'])) ?></time>
-                <?php if ($r['score'] !== null): ?><span class="kbx-badge"><?= (int) $r['score'] ?>/100</span><?php endif ?>
+                <?php if ($profile['settings']['show_score'] && $r['score'] !== null): ?><span class="kbx-badge"><?= (int) $r['score'] ?>/100</span><?php endif ?>
                 <p><?= nl2br($this->text->e($r['narrative'])) ?></p>
             </li>
         <?php endforeach ?>

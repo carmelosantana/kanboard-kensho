@@ -188,7 +188,12 @@
     }
 
     // Collect every card (manual + AI-derived) into the shape areas() expects:
-    // {label, importance, sources:{project_ids, category_ids, tag_ids}}.
+    // {id?, label, importance, identity?, goals?, sources:{project_ids, category_ids, tag_ids}}.
+    // Existing-area cards carry hidden id/identity/goals fields (rendered by
+    // areas.php) so a round-trip through "Save areas" cannot silently wipe
+    // the identity/goals entered on the Goals tab or mint a fresh id. New
+    // manual/AI-proposed cards simply have no such fields, which is correct:
+    // the model mints an id and leaves identity/goals empty for them.
     function collectAreas(root) {
         var list = root.querySelector('[data-kensho-area-cards]');
         var areas = [];
@@ -224,7 +229,29 @@
                 }
             });
 
-            areas.push({ label: label, importance: importance, sources: sources });
+            var area = { label: label, importance: importance, sources: sources };
+
+            var idInput = card.querySelector('[data-area-card-id]');
+            if (idInput && idInput.value) {
+                area.id = idInput.value;
+            }
+            var identityInput = card.querySelector('[data-area-card-identity]');
+            if (identityInput) {
+                area.identity = identityInput.value;
+            }
+            var goalsInput = card.querySelector('[data-area-card-goals]');
+            if (goalsInput && goalsInput.value) {
+                try {
+                    var parsedGoals = JSON.parse(goalsInput.value);
+                    if (Array.isArray(parsedGoals)) {
+                        area.goals = parsedGoals;
+                    }
+                } catch (err) {
+                    // Malformed JSON (should not happen; value is server-rendered) — omit goals.
+                }
+            }
+
+            areas.push(area);
         });
         return areas;
     }

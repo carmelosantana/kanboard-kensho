@@ -73,6 +73,9 @@
     <div data-kensho-area-cards>
         <?php foreach ($profile['areas'] as $a): ?>
             <fieldset class="kensho-area-card" data-kensho-area-card>
+                <input type="hidden" data-area-card-id value="<?= $this->text->e($a['id']) ?>">
+                <input type="hidden" data-area-card-identity value="<?= $this->text->e($a['identity']) ?>">
+                <input type="hidden" data-area-card-goals value="<?= $this->text->e(json_encode($a['goals'])) ?>">
                 <label><?= t('Label') ?>
                     <input type="text" data-area-card-label value="<?= $this->text->e($a['label']) ?>">
                 </label>
