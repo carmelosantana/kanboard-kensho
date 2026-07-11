@@ -50,6 +50,11 @@ class AiModelReflectTest extends Base
         $this->assertIsString($out['gentle_note']);
         $this->assertArrayNotHasKey('verdict', $out);
         $this->assertArrayNotHasKey('score', $out);
+
+        // Canned values must actually flow through (a regression returning empty
+        // arrays/strings would still pass the shape assertions above).
+        $this->assertSame('You logged most time on Health this window.', $out['observations'][0]);
+        $this->assertSame('A quiet stretch is just a lapse, not a verdict.', $out['gentle_note']);
     }
 
     public function testReflectNormalizesGarbageToSafeDefaults()

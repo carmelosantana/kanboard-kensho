@@ -57,6 +57,7 @@ class AiModelProposeClarifyTest extends Base
         $this->assertStringContainsStringIgnoringCase('suggestion', $system);
         $this->assertStringContainsStringIgnoringCase('purpose', $system); // as prohibition
         $this->assertStringContainsStringIgnoringCase('challenge', $system); // active challenge-not-flatter half
+        $this->assertStringContainsStringIgnoringCase('lapse', $system); // low/absent activity is not a failure
     }
 
     public function testClarifyGoalsSystemPromptChallengesAndDefersMeaning()
@@ -73,6 +74,7 @@ class AiModelProposeClarifyTest extends Base
         $this->assertStringContainsStringIgnoringCase('challenge', $system);
         $this->assertStringContainsStringIgnoringCase('purpose', $system); // no-purpose/worth guardrail
         $this->assertStringContainsStringIgnoringCase('worth', $system);
+        $this->assertStringContainsStringIgnoringCase('lapse', $system); // low/absent activity is not a failure
     }
 
     public function testProposeAreasGuardsAgainstNonArrayAreas()

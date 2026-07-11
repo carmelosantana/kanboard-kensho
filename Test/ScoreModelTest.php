@@ -81,6 +81,35 @@ class ScoreModelTest extends Base
         $r = KenshoScoreModel::alignment($this->areas(), []);
         $this->assertNull($r['score']);
         $this->assertEqualsWithDelta(0.0, $r['total_effort'], 0.001);
+        $this->assertFalse($r['uses_task_count_fallback']);
+    }
+
+    public function testOverlappingSourcesClaimedByFirstAreaOnly()
+    {
+        // Both areas list project 1 in their sources — the FIRST area (in array
+        // order) must claim all of its effort; the second area gets none of it,
+        // and no effort is double-counted (Σ actual_share still = 100).
+        $areas = [
+            ['id' => 'area_health', 'label' => 'Health', 'importance' => 9, 'weight' => 1.0,
+             'sources' => ['project_ids' => [1], 'category_ids' => [], 'tag_ids' => []]],
+            ['id' => 'area_work', 'label' => 'Work', 'importance' => 5, 'weight' => 1.0,
+             'sources' => ['project_ids' => [1, 2], 'category_ids' => [], 'tag_ids' => []]],
+        ];
+        $dims = [
+            ['type' => 'project', 'id' => 1, 'label' => 'Gym', 'task_count' => 2, 'time_spent' => 10.0],
+            ['type' => 'project', 'id' => 2, 'label' => 'Job', 'task_count' => 8, 'time_spent' => 90.0],
+        ];
+        $r = KenshoScoreModel::alignment($areas, $dims);
+
+        $health = $this->rowById($r['rows'], 'area_health');
+        $work = $this->rowById($r['rows'], 'area_work');
+        // Health (first) claims project 1's 10.0 of effort entirely.
+        $this->assertEqualsWithDelta(10.0, $health['effort'], 0.001);
+        // Work (second) does NOT also get project 1's effort — only project 2's 90.0.
+        $this->assertEqualsWithDelta(90.0, $work['effort'], 0.001);
+
+        $sumActual = array_sum(array_column($r['rows'], 'actual_share'));
+        $this->assertEqualsWithDelta(100.0, $sumActual, 0.001);
     }
 
     public function testPerfectAlignmentScores100()

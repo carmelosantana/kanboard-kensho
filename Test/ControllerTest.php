@@ -122,6 +122,20 @@ class ControllerTest extends Base
         $this->controller(true)->propose();
     }
 
+    public function testClarifyRejectsBadCsrfWhenGateOpen()
+    {
+        $this->expectException(AccessForbiddenException::class);
+        $this->withRequest([], 'wrong-token');
+        $this->controller(true)->clarify();
+    }
+
+    public function testReflectRejectsBadCsrfWhenGateOpen()
+    {
+        $this->expectException(AccessForbiddenException::class);
+        $this->withRequest([], 'wrong-token');
+        $this->controller(true)->reflect();
+    }
+
     public function testAreasSavesWithValidCsrf()
     {
         $this->withRequest([

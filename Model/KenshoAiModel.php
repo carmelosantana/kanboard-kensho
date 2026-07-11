@@ -171,6 +171,7 @@ class KenshoAiModel extends Base
             'Never state or imply the person\'s purpose, calling, or worth, and do not rank areas as more or less worthy.',
             'Challenge vague or self-flattering framing in the data rather than validating it uncritically.',
             'An importance_hint, if given, is a gentle guess they will overwrite; keep rationales observational, not flattering.',
+            'Treat low or absent activity in a dimension as an ordinary lapse, never a failure or something to correct.',
         ]);
     }
 
@@ -181,6 +182,7 @@ class KenshoAiModel extends Base
             'Stay in their own words and meaning; do not inflate, moralize, or promise outcomes.',
             'Challenge gently where the note is vague rather than flattering it; keep goals small and humane.',
             'Never claim what their purpose or worth is. The output is a draft they will edit before anything is saved.',
+            'Treat low or absent activity as an ordinary lapse, never a failure or something to correct.',
         ]);
     }
 
