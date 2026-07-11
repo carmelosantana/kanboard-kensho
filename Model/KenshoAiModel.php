@@ -115,7 +115,7 @@ class KenshoAiModel extends Base
                 continue;
             }
             $refs = [];
-            foreach (($a['dimension_refs'] ?? []) as $r) {
+            foreach ((is_array($a['dimension_refs'] ?? null) ? $a['dimension_refs'] : []) as $r) {
                 if (is_array($r) && isset($r['type'], $r['id'])) {
                     $refs[] = ['type' => (string) $r['type'], 'id' => (int) $r['id']];
                 }

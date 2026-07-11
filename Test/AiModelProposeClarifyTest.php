@@ -94,4 +94,16 @@ class AiModelProposeClarifyTest extends Base
         $out = $model->clarifyGoals('Health', 'want to be fit and rested');
         $this->assertSame([], $out['goals']);
     }
+
+    public function testProposeAreasGuardsAgainstNonArrayDimensionRefs()
+    {
+        // Malformed model response: "dimension_refs" present but not an array — must not crash.
+        $model = $this->modelReturning(['areas' => [
+            ['label' => 'Health', 'rationale' => 'x', 'dimension_refs' => 'garbage-non-array-string'],
+        ]]);
+        $out = $model->proposeAreas(['dimensions' => []]);
+        $this->assertCount(1, $out['areas']);
+        $this->assertEquals('Health', $out['areas'][0]['label']);
+        $this->assertSame([], $out['areas'][0]['dimension_refs']);
+    }
 }
