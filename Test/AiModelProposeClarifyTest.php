@@ -56,5 +56,42 @@ class AiModelProposeClarifyTest extends Base
         $system = $ref->invoke($model)->lastMessages[0]['content'];
         $this->assertStringContainsStringIgnoringCase('suggestion', $system);
         $this->assertStringContainsStringIgnoringCase('purpose', $system); // as prohibition
+        $this->assertStringContainsStringIgnoringCase('challenge', $system); // active challenge-not-flatter half
+    }
+
+    public function testClarifyGoalsSystemPromptChallengesAndDefersMeaning()
+    {
+        $model = $this->modelReturning([
+            'identity' => '',
+            'goals' => [],
+            'reflection_question' => '',
+        ]);
+        $model->clarifyGoals('Health', 'a rough note');
+        $ref = new ReflectionMethod($model, 'getRegistry');
+        $ref->setAccessible(true);
+        $system = $ref->invoke($model)->lastMessages[0]['content'];
+        $this->assertStringContainsStringIgnoringCase('challenge', $system);
+        $this->assertStringContainsStringIgnoringCase('purpose', $system); // no-purpose/worth guardrail
+        $this->assertStringContainsStringIgnoringCase('worth', $system);
+    }
+
+    public function testProposeAreasGuardsAgainstNonArrayAreas()
+    {
+        // Malformed model response: "areas" present but not an array — must not crash.
+        $model = $this->modelReturning(['areas' => 'garbage-non-array-string']);
+        $out = $model->proposeAreas(['dimensions' => []]);
+        $this->assertSame(['areas' => []], $out);
+    }
+
+    public function testClarifyGoalsGuardsAgainstNonArrayGoals()
+    {
+        // Malformed model response: "goals" present but not an array — must not crash.
+        $model = $this->modelReturning([
+            'identity' => 'Someone who rests well.',
+            'goals' => 'garbage-non-array-string',
+            'reflection_question' => 'What does rest mean to you?',
+        ]);
+        $out = $model->clarifyGoals('Health', 'want to be fit and rested');
+        $this->assertSame([], $out['goals']);
     }
 }

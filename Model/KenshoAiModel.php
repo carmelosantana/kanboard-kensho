@@ -106,7 +106,7 @@ class KenshoAiModel extends Base
 
         $raw = $this->safeStructured($messages, $schema, $profileId);
         $areas = [];
-        foreach (($raw['areas'] ?? []) as $a) {
+        foreach ((is_array($raw['areas'] ?? null) ? $raw['areas'] : []) as $a) {
             if (! is_array($a)) {
                 continue;
             }
@@ -169,6 +169,7 @@ class KenshoAiModel extends Base
             'Return only suggestions with short rationales; these are a starting point the person will edit, rename, merge, or reject — the areas are theirs, not yours to impose.',
             'Do not use a fixed values taxonomy; follow the shape of their actual data and their language.',
             'Never state or imply the person\'s purpose, calling, or worth, and do not rank areas as more or less worthy.',
+            'Challenge vague or self-flattering framing in the data rather than validating it uncritically.',
             'An importance_hint, if given, is a gentle guess they will overwrite; keep rationales observational, not flattering.',
         ]);
     }
