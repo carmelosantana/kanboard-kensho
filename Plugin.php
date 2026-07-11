@@ -25,6 +25,8 @@ class Plugin extends Base
         $this->route->addRoute('kensho/propose', 'KenshoController', 'propose', 'Kensho');
         $this->route->addRoute('kensho/clarify', 'KenshoController', 'clarify', 'Kensho');
         $this->route->addRoute('kensho/reflect', 'KenshoController', 'reflect', 'Kensho');
+        $this->route->addRoute('kensho/assets/css', 'KenshoController', 'css', 'Kensho');
+        $this->route->addRoute('kensho/assets/js', 'KenshoController', 'js', 'Kensho');
 
         // ── Entry-point link in the header user dropdown ──
         $this->template->hook->attach('template:header:dropdown', 'Kensho:header_dropdown');
