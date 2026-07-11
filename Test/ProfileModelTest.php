@@ -94,4 +94,40 @@ class ProfileModelTest extends Base
         $this->assertLessThanOrEqual(10, $saved['areas'][0]['importance']);
         $this->assertGreaterThanOrEqual(1, $saved['areas'][0]['importance']);
     }
+
+    public function testNestedArrayInScalarFieldDoesNotWarnAndCoercesToEmptyString()
+    {
+        $this->container['userMetadataModel']->save(1, ['kensho_profile' => json_encode([
+            'version'     => 1,
+            'window_days' => 90,
+            'settings'    => ['show_score' => true],
+            'areas'       => [
+                [
+                    'id'         => 'area_bad',
+                    'label'      => ['nested', 'array'],
+                    'importance' => 9,
+                    'identity'   => ['also', 'nested'],
+                ],
+            ],
+            'reflections' => [
+                [
+                    'id'               => ['nested'],
+                    'narrative'        => ['nested', 'narrative'],
+                    'provider_profile' => ['nested', 'provider'],
+                ],
+            ],
+        ])]);
+
+        $p = $this->model()->getProfile(1);
+
+        $this->assertCount(1, $p['areas']);
+        $this->assertSame('', $p['areas'][0]['label']);
+        $this->assertSame('', $p['areas'][0]['identity']);
+        $this->assertSame('area_bad', $p['areas'][0]['id']);
+
+        $this->assertCount(1, $p['reflections']);
+        $this->assertSame('', $p['reflections'][0]['id']);
+        $this->assertSame('', $p['reflections'][0]['narrative']);
+        $this->assertSame('', $p['reflections'][0]['provider_profile']);
+    }
 }

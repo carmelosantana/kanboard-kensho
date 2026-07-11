@@ -88,8 +88,7 @@ class KenshoProfileModel extends Base
 
     private static function sanitize(array $data): array
     {
-        $d = self::defaults();
-        $windowDays = (int) ($data['window_days'] ?? $d['window_days']);
+        $windowDays = (int) ($data['window_days'] ?? 90);
         $settingsRaw = is_array($data['settings'] ?? null) ? $data['settings'] : [];
         $out = [
             'version'     => self::VERSION,
@@ -120,8 +119,8 @@ class KenshoProfileModel extends Base
 
     private static function sanitizeArea(array $a, array $siblings): array
     {
-        $label = trim((string) ($a['label'] ?? ''));
-        $id = trim((string) ($a['id'] ?? ''));
+        $label = trim(self::toStr($a['label'] ?? ''));
+        $id = trim(self::toStr($a['id'] ?? ''));
         if ($id === '') {
             $id = self::uniqueSlug($label, $siblings);
         }
@@ -153,7 +152,7 @@ class KenshoProfileModel extends Base
             'id'         => $id,
             'label'      => $label,
             'importance' => $importance,
-            'identity'   => trim((string) ($a['identity'] ?? '')),
+            'identity'   => trim(self::toStr($a['identity'] ?? '')),
             'goals'      => $goals,
             'weight'     => $weight,
             'sources'    => $sources,
@@ -163,14 +162,24 @@ class KenshoProfileModel extends Base
     private static function sanitizeReflection(array $r): array
     {
         return [
-            'id'               => trim((string) ($r['id'] ?? ('r_' . substr(md5(json_encode($r)), 0, 10)))),
+            'id'               => trim(isset($r['id']) ? self::toStr($r['id']) : ('r_' . substr(md5(json_encode($r)), 0, 10))),
             'date'             => (int) ($r['date'] ?? 0),
             'window_days'      => (int) ($r['window_days'] ?? 90),
             'score'            => isset($r['score']) && is_numeric($r['score']) ? (int) $r['score'] : null,
             'discrepancies'    => is_array($r['discrepancies'] ?? null) ? $r['discrepancies'] : [],
-            'narrative'        => (string) ($r['narrative'] ?? ''),
-            'provider_profile' => (string) ($r['provider_profile'] ?? ''),
+            'narrative'        => self::toStr($r['narrative'] ?? ''),
+            'provider_profile' => self::toStr($r['provider_profile'] ?? ''),
         ];
+    }
+
+    /**
+     * Coerce a value to a string for output. Non-scalar values (arrays,
+     * objects from malformed stored JSON) collapse to '' instead of
+     * triggering a PHP "Array to string conversion" warning.
+     */
+    private static function toStr($v): string
+    {
+        return is_scalar($v) ? (string) $v : '';
     }
 
     private static function intList($value): array
