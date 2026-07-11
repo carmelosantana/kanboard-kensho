@@ -1,0 +1,14 @@
+{
+    "name": "Kensho",
+    "description": "A private, per-user reflection companion: mine your own Kanboard activity, record who you want to be, and reflect on whether the two align — with an LLM as a collaborator, never an authority.",
+    "version": "1.0.0",
+    "author": "Carmelo Santana",
+    "license": "MIT",
+    "homepage": "https://github.com/carmelosantana/kanboard-kensho",
+    "kanboard_version": ">=1.2.47",
+    "php_version": ">=8.4",
+    "recommends": {
+        "AiConnector": ">=1.0.0",
+        "ShadcnTheme": ">=1.1.0"
+    }
+}
