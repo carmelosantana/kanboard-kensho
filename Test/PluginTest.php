@@ -43,7 +43,11 @@ class PluginTest extends Base
         $this->assertEquals('Kensho', $json['name']);
         $this->assertEquals('1.0.0', $json['version']);
         $this->assertArrayNotHasKey('requires', $json);
-        $this->assertArrayHasKey('AiConnector', $json['recommends']);
-        $this->assertArrayHasKey('ShadcnTheme', $json['recommends']);
+        // recommends is an array of {plugin, min_version, reason} dep objects —
+        // the shape ModMenu's DependencyResolver/PluginManager::normalizeDeps expects.
+        $this->assertIsArray($json['recommends']);
+        $plugins = array_column($json['recommends'], 'plugin');
+        $this->assertContains('AiConnector', $plugins);
+        $this->assertContains('ShadcnTheme', $plugins);
     }
 }
