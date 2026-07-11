@@ -90,11 +90,12 @@ class KenshoProfileModel extends Base
     {
         $d = self::defaults();
         $windowDays = (int) ($data['window_days'] ?? $d['window_days']);
+        $settingsRaw = is_array($data['settings'] ?? null) ? $data['settings'] : [];
         $out = [
             'version'     => self::VERSION,
             'window_days' => in_array($windowDays, [30, 90, 180, 365], true) ? $windowDays : 90,
             'settings'    => [
-                'show_score' => (bool) ($data['settings']['show_score'] ?? true),
+                'show_score' => (bool) ($settingsRaw['show_score'] ?? true),
             ],
             'areas'       => [],
             'reflections' => [],
