@@ -60,6 +60,129 @@ class KenshoAiModel extends Base
         ];
     }
 
+    /**
+     * Propose candidate life-area groupings from the aggregated dimensions.
+     * Input carries dimension labels + signals + up to 5 sample TITLES only
+     * (no descriptions/comments). Output is a scaffold the user edits/confirms.
+     *
+     * @return array{areas: array<int, array{label:string, rationale:string, dimension_refs: array<int, array{type:string,id:int}>, importance_hint: int|null}>}
+     */
+    public function proposeAreas(array $aggregate, ?string $profileId = null): array
+    {
+        $schema = json_encode([
+            'type'       => 'object',
+            'properties' => [
+                'areas' => [
+                    'type'  => 'array',
+                    'items' => [
+                        'type'       => 'object',
+                        'properties' => [
+                            'label'          => ['type' => 'string'],
+                            'rationale'      => ['type' => 'string'],
+                            'dimension_refs' => [
+                                'type'  => 'array',
+                                'items' => [
+                                    'type'       => 'object',
+                                    'properties' => [
+                                        'type' => ['type' => 'string', 'enum' => ['project', 'category', 'tag']],
+                                        'id'   => ['type' => 'integer'],
+                                    ],
+                                    'required'   => ['type', 'id'],
+                                ],
+                            ],
+                            'importance_hint' => ['type' => 'integer'],
+                        ],
+                        'required'   => ['label', 'rationale', 'dimension_refs'],
+                    ],
+                ],
+            ],
+            'required'   => ['areas'],
+        ]);
+
+        $messages = [
+            ['role' => 'system', 'content' => self::systemPropose()],
+            ['role' => 'user',   'content' => json_encode($aggregate, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)],
+        ];
+
+        $raw = $this->safeStructured($messages, $schema, $profileId);
+        $areas = [];
+        foreach (($raw['areas'] ?? []) as $a) {
+            if (! is_array($a)) {
+                continue;
+            }
+            $label = trim((string) ($a['label'] ?? ''));
+            if ($label === '') {
+                continue;
+            }
+            $refs = [];
+            foreach (($a['dimension_refs'] ?? []) as $r) {
+                if (is_array($r) && isset($r['type'], $r['id'])) {
+                    $refs[] = ['type' => (string) $r['type'], 'id' => (int) $r['id']];
+                }
+            }
+            $areas[] = [
+                'label'           => $label,
+                'rationale'       => trim((string) ($a['rationale'] ?? '')),
+                'dimension_refs'  => $refs,
+                'importance_hint' => isset($a['importance_hint']) && is_numeric($a['importance_hint'])
+                    ? max(1, min(10, (int) $a['importance_hint'])) : null,
+            ];
+        }
+        return ['areas' => $areas];
+    }
+
+    /**
+     * Turn a rough note about an area into a crisper desired-self statement +
+     * concrete goals + one reflection question. Edit-before-save scaffold.
+     *
+     * @return array{identity:string, goals: string[], reflection_question:string}
+     */
+    public function clarifyGoals(string $areaLabel, string $note, ?string $profileId = null): array
+    {
+        $schema = json_encode([
+            'type'       => 'object',
+            'properties' => [
+                'identity'            => ['type' => 'string'],
+                'goals'               => ['type' => 'array', 'items' => ['type' => 'string']],
+                'reflection_question' => ['type' => 'string'],
+            ],
+            'required'   => ['identity', 'goals', 'reflection_question'],
+        ]);
+
+        $messages = [
+            ['role' => 'system', 'content' => self::systemClarify()],
+            ['role' => 'user',   'content' => json_encode(['area' => $areaLabel, 'note' => $note], JSON_UNESCAPED_UNICODE)],
+        ];
+
+        $raw = $this->safeStructured($messages, $schema, $profileId);
+        return [
+            'identity'            => is_string($raw['identity'] ?? null) ? trim($raw['identity']) : '',
+            'goals'               => self::stringList($raw['goals'] ?? []),
+            'reflection_question' => is_string($raw['reflection_question'] ?? null) ? trim($raw['reflection_question']) : '',
+        ];
+    }
+
+    protected static function systemPropose(): string
+    {
+        return implode(' ', [
+            'You are helping someone group their own recorded activity (projects, categories, tags, with effort signals and a few sample task titles) into life areas that are meaningful TO THEM.',
+            'Return only suggestions with short rationales; these are a starting point the person will edit, rename, merge, or reject — the areas are theirs, not yours to impose.',
+            'Do not use a fixed values taxonomy; follow the shape of their actual data and their language.',
+            'Never state or imply the person\'s purpose, calling, or worth, and do not rank areas as more or less worthy.',
+            'An importance_hint, if given, is a gentle guess they will overwrite; keep rationales observational, not flattering.',
+        ]);
+    }
+
+    protected static function systemClarify(): string
+    {
+        return implode(' ', [
+            'You help someone sharpen a rough note about one life area into a clear, second-person desired-self statement and a few concrete, doable goals, plus one open reflection question.',
+            'Stay in their own words and meaning; do not inflate, moralize, or promise outcomes.',
+            'Challenge gently where the note is vague rather than flattering it; keep goals small and humane.',
+            'Never claim what their purpose or worth is. The output is a draft they will edit before anything is saved.',
+        ]);
+    }
+
     // ── Shared helpers ────────────────────────────────────────────────────────
 
     /**
