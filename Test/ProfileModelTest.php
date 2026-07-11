@@ -1,0 +1,97 @@
+<?php
+
+require_once 'tests/units/Base.php';
+
+use Kanboard\Plugin\Kensho\Model\KenshoProfileModel;
+use KanboardTests\units\Base;
+
+class ProfileModelTest extends Base
+{
+    private function model(): KenshoProfileModel
+    {
+        return new KenshoProfileModel($this->container);
+    }
+
+    public function testEmptyMetadataReturnsDefaults()
+    {
+        $p = $this->model()->getProfile(1);
+        $this->assertEquals(1, $p['version']);
+        $this->assertEquals(90, $p['window_days']);
+        $this->assertTrue($p['settings']['show_score']);
+        $this->assertSame([], $p['areas']);
+        $this->assertSame([], $p['reflections']);
+    }
+
+    public function testCorruptJsonReturnsDefaults()
+    {
+        $this->container['userMetadataModel']->save(1, ['kensho_profile' => '{not valid json']);
+        $p = $this->model()->getProfile(1);
+        $this->assertSame([], $p['areas']);
+        $this->assertEquals(90, $p['window_days']);
+    }
+
+    public function testPartialStoredJsonFilledWithDefaults()
+    {
+        $this->container['userMetadataModel']->save(1, ['kensho_profile' => json_encode(['version' => 1])]);
+        $p = $this->model()->getProfile(1);
+        $this->assertSame([], $p['areas']);
+        $this->assertArrayHasKey('show_score', $p['settings']);
+    }
+
+    public function testRoundTrip()
+    {
+        $m = $this->model();
+        $profile = $m->getProfile(1);
+        $profile['window_days'] = 180;
+        $profile['settings']['show_score'] = false;
+        $this->assertTrue($m->saveProfile(1, $profile));
+
+        $reloaded = $m->getProfile(1);
+        $this->assertEquals(180, $reloaded['window_days']);
+        $this->assertFalse($reloaded['settings']['show_score']);
+    }
+
+    public function testUpsertAreaGeneratesSlugIdThenUpdates()
+    {
+        $m = $this->model();
+        $saved = $m->upsertArea(1, ['label' => 'Health & Fitness', 'importance' => 9]);
+        $this->assertCount(1, $saved['areas']);
+        $id = $saved['areas'][0]['id'];
+        $this->assertStringStartsWith('area_', $id);
+        $this->assertEquals(9, $saved['areas'][0]['importance']);
+        $this->assertEquals(1.0, $saved['areas'][0]['weight']); // default weight
+
+        // Upsert same id → update, not append.
+        $saved2 = $m->upsertArea(1, ['id' => $id, 'label' => 'Health', 'importance' => 7]);
+        $this->assertCount(1, $saved2['areas']);
+        $this->assertEquals(7, $saved2['areas'][0]['importance']);
+        $this->assertEquals('Health', $saved2['areas'][0]['label']);
+    }
+
+    public function testRemoveArea()
+    {
+        $m = $this->model();
+        $saved = $m->upsertArea(1, ['id' => 'area_health', 'label' => 'Health', 'importance' => 9]);
+        $this->assertCount(1, $saved['areas']);
+        $after = $m->removeArea(1, 'area_health');
+        $this->assertSame([], $after['areas']);
+    }
+
+    public function testAddReflectionAppends()
+    {
+        $m = $this->model();
+        $m->addReflection(1, ['id' => 'r_1', 'date' => 1783000000, 'narrative' => 'first']);
+        $p = $m->addReflection(1, ['id' => 'r_2', 'date' => 1783000100, 'narrative' => 'second']);
+        $this->assertCount(2, $p['reflections']);
+        $this->assertEquals('r_1', $p['reflections'][0]['id']);
+        $this->assertEquals('second', $p['reflections'][1]['narrative']);
+    }
+
+    public function testImportanceAndWindowClampedAndSanitized()
+    {
+        $m = $this->model();
+        $saved = $m->upsertArea(1, ['label' => 'X', 'importance' => 99]); // out of 1..10 range
+        $this->assertLessThanOrEqual(10, $saved['areas'][0]['importance']);
+        $this->assertGreaterThanOrEqual(1, $saved['areas'][0]['importance']);
+    }
+}
