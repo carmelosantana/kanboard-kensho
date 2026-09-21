@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1 — 2026-09-21
+
+- Fix: logging in redirected to `/kensho/assets/js` instead of the dashboard. Kensho served its CSS/JS through authenticated routes emitted into `template:layout:head`, which renders on the login page too; the anonymous browser fetch of those URLs was captured by `AuthenticationMiddleware` into the session's `redirectAfterLogin` and replayed after login. The assets are now plain static files under `plugins/Kensho/Assets/`, registered on `template:layout:css` / `template:layout:js` like every other suite plugin, so the PHP router never sees them.
+
 ## 1.0.0 — 2026-07-11
 
 - Initial release: private per-user reflection companion.

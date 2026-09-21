@@ -164,18 +164,6 @@ class KenshoController extends BaseController
         $this->response->json($out);
     }
 
-    // ── Assets (buildless; served with correct content-type) ───────────────────
-
-    public function css(): void
-    {
-        $this->response->css(file_get_contents(__DIR__ . '/../Assets/css/kensho.css'));
-    }
-
-    public function js(): void
-    {
-        $this->response->js(file_get_contents(__DIR__ . '/../Assets/js/kensho.js'));
-    }
-
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     /** Reject with 403 unless the AI gate is open. Mirrors GeneratorController. */
