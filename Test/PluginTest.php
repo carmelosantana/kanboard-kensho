@@ -11,7 +11,7 @@ class PluginTest extends Base
     {
         $plugin = new Plugin($this->container);
         $this->assertEquals('Kensho', $plugin->getPluginName());
-        $this->assertEquals('1.0.1', $plugin->getPluginVersion());
+        $this->assertEquals('1.0.2', $plugin->getPluginVersion());
         $this->assertEquals('Carmelo Santana', $plugin->getPluginAuthor());
         $this->assertStringContainsString('>=1.2.47', $plugin->getCompatibleKanboardVersion());
     }
@@ -41,7 +41,7 @@ class PluginTest extends Base
         $json = json_decode(file_get_contents(__DIR__ . '/../plugin.json'), true);
         $this->assertIsArray($json);
         $this->assertEquals('Kensho', $json['name']);
-        $this->assertEquals('1.0.1', $json['version']);
+        $this->assertEquals('1.0.2', $json['version']);
         $this->assertArrayNotHasKey('requires', $json);
         // recommends is an array of {plugin, min_version, reason} dep objects —
         // the shape ModMenu's DependencyResolver/PluginManager::normalizeDeps expects.

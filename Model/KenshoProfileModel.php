@@ -5,14 +5,23 @@ namespace Kanboard\Plugin\Kensho\Model;
 use Kanboard\Core\Base;
 
 /**
- * KenshoProfileModel — per-user Kensho profile stored as JSON in user_metadata
- * (key `kensho_profile`). No DB migration. Decoding is defensive: corrupt or
- * absent JSON, or a partial object, always yields a complete default-filled
- * profile so the surfaces never see a missing key.
+ * KenshoProfileModel — per-user Kensho profile stored as JSON in the plugin's
+ * own `kensho_profiles` table.
+ *
+ * It used to live in user_has_metadata under the key `kensho_profile`, but that
+ * `value` column is VARCHAR(255) on MySQL and Postgres and a profile with two
+ * focus areas already exceeds it — writes failed with SQLSTATE[22001] or
+ * truncated silently. See Schema/Mysql.php for the migration.
+ *
+ * Decoding is defensive: corrupt or absent JSON, or a partial object, always
+ * yields a complete default-filled profile so the surfaces never see a missing
+ * key.
  */
 class KenshoProfileModel extends Base
 {
+    /** Legacy metadata key, still read by the schema migration. */
     const KEY     = 'kensho_profile';
+    const TABLE   = 'kensho_profiles';
     const VERSION = 1;
 
     public static function defaults(): array
@@ -28,8 +37,8 @@ class KenshoProfileModel extends Base
 
     public function getProfile(int $userId): array
     {
-        $raw = (string) $this->userMetadataModel->get($userId, self::KEY, '');
-        $data = $raw !== '' ? json_decode($raw, true) : null;
+        $raw = $this->db->table(self::TABLE)->eq('user_id', $userId)->findOneColumn('profile');
+        $data = is_string($raw) && $raw !== '' ? json_decode($raw, true) : null;
         if (! is_array($data)) {
             return self::defaults();
         }
@@ -39,9 +48,12 @@ class KenshoProfileModel extends Base
     public function saveProfile(int $userId, array $profile): bool
     {
         $clean = self::sanitize($profile);
-        return (bool) $this->userMetadataModel->save($userId, [
-            self::KEY => json_encode($clean, JSON_UNESCAPED_UNICODE),
-        ]);
+        $values = ['profile' => json_encode($clean, JSON_UNESCAPED_UNICODE)];
+
+        if ($this->db->table(self::TABLE)->eq('user_id', $userId)->exists()) {
+            return (bool) $this->db->table(self::TABLE)->eq('user_id', $userId)->update($values);
+        }
+        return (bool) $this->db->table(self::TABLE)->insert($values + ['user_id' => $userId]);
     }
 
     public function upsertArea(int $userId, array $area): array

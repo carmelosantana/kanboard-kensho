@@ -5,14 +5,36 @@ require_once 'tests/units/Base.php';
 use Kanboard\Plugin\Kensho\Model\KenshoProfileModel;
 use KanboardTests\units\Base;
 
+require_once __DIR__ . '/KenshoSchemaHelper.php';
+
 class ProfileModelTest extends Base
 {
+    use KenshoSchemaHelper;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->createKenshoSchema();
+    }
+
     private function model(): KenshoProfileModel
     {
         return new KenshoProfileModel($this->container);
     }
 
-    public function testEmptyMetadataReturnsDefaults()
+    /**
+     * Write a raw stored value straight into the profile table, bypassing the
+     * model, so the defensive decode path can be exercised with data the
+     * sanitizers would otherwise never produce.
+     */
+    private function seedRawProfile(int $userId, string $raw): void
+    {
+        $this->container['db']
+            ->table(KenshoProfileModel::TABLE)
+            ->insert(['user_id' => $userId, 'profile' => $raw]);
+    }
+
+    public function testNoStoredProfileReturnsDefaults()
     {
         $p = $this->model()->getProfile(1);
         $this->assertEquals(1, $p['version']);
@@ -24,7 +46,7 @@ class ProfileModelTest extends Base
 
     public function testCorruptJsonReturnsDefaults()
     {
-        $this->container['userMetadataModel']->save(1, ['kensho_profile' => '{not valid json']);
+        $this->seedRawProfile(1, '{not valid json');
         $p = $this->model()->getProfile(1);
         $this->assertSame([], $p['areas']);
         $this->assertEquals(90, $p['window_days']);
@@ -32,7 +54,7 @@ class ProfileModelTest extends Base
 
     public function testPartialStoredJsonFilledWithDefaults()
     {
-        $this->container['userMetadataModel']->save(1, ['kensho_profile' => json_encode(['version' => 1])]);
+        $this->seedRawProfile(1, json_encode(['version' => 1]));
         $p = $this->model()->getProfile(1);
         $this->assertSame([], $p['areas']);
         $this->assertArrayHasKey('show_score', $p['settings']);
@@ -97,7 +119,7 @@ class ProfileModelTest extends Base
 
     public function testNestedArrayInScalarFieldDoesNotWarnAndCoercesToEmptyString()
     {
-        $this->container['userMetadataModel']->save(1, ['kensho_profile' => json_encode([
+        $this->seedRawProfile(1, json_encode([
             'version'     => 1,
             'window_days' => 90,
             'settings'    => ['show_score' => true],
@@ -116,7 +138,7 @@ class ProfileModelTest extends Base
                     'provider_profile' => ['nested', 'provider'],
                 ],
             ],
-        ])]);
+        ]));
 
         $p = $this->model()->getProfile(1);
 

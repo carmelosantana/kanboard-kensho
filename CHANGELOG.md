@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2 — 2026-09-21
+
+- Fix: the profile was written as a single JSON blob into `user_has_metadata.value`, which is `VARCHAR(255)` on MySQL and Postgres. A profile with two focus areas — or one saved reflection — already exceeds that, so saving failed with `SQLSTATE[22001] Data too long for column 'value'` (MySQL 1406), or truncated silently outside strict mode and corrupted the profile. SQLite ignores declared `VARCHAR` lengths, which is why this never showed up in the test harness. Profiles now live in the plugin's own `kensho_profiles` table (`MEDIUMTEXT` on MySQL, `TEXT` on Postgres/SQLite) via a `Schema/` migration.
+- Existing profiles are **copied** out of `user_has_metadata` on upgrade, not moved, so a downgrade to 1.0.1 still finds its data. Rows already truncated mid-JSON by this bug are skipped rather than failing the migration, which would otherwise leave the plugin unable to enable at all; those users start again from a default profile.
+
 ## 1.0.1 — 2026-09-21
 
 - Fix: logging in redirected to `/kensho/assets/js` instead of the dashboard. Kensho served its CSS/JS through authenticated routes emitted into `template:layout:head`, which renders on the login page too; the anonymous browser fetch of those URLs was captured by `AuthenticationMiddleware` into the session's `redirectAfterLogin` and replayed after login. The assets are now plain static files under `plugins/Kensho/Assets/`, registered on `template:layout:css` / `template:layout:js` like every other suite plugin, so the PHP router never sees them.

@@ -6,6 +6,8 @@ use Kanboard\Core\Controller\AccessForbiddenException;
 use Kanboard\Plugin\Kensho\Controller\KenshoController;
 use KanboardTests\units\Base;
 
+require_once __DIR__ . '/KenshoSchemaHelper.php';
+
 /**
  * Unit tests for KenshoController (Task 06).
  *
@@ -20,6 +22,14 @@ use KanboardTests\units\Base;
  */
 class ControllerTest extends Base
 {
+    use KenshoSchemaHelper;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->createKenshoSchema();
+    }
+
     /** Controller with a forced AI-gate result and a logged-in user id. */
     private function controller(bool $aiEnabled): KenshoController
     {
