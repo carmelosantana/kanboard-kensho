@@ -64,7 +64,7 @@ appear until AiConnector is installed and configured.
 ## Requirements
 
 - Kanboard >= 1.2.47, PHP >= 8.4
-- Recommended: AiConnector >= 1.0.0 (AI assistance), ShadcnTheme >= 1.1.0 (theming)
+- Recommended: AiConnector >= 1.1.4 (AI assistance), ShadcnTheme >= 1.1.0 (theming)
 
 ## License
 
