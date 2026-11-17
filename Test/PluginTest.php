@@ -11,9 +11,11 @@ class PluginTest extends Base
     {
         $plugin = new Plugin($this->container);
         $this->assertEquals('Kensho', $plugin->getPluginName());
-        $this->assertEquals('1.0.2', $plugin->getPluginVersion());
+        $this->assertEquals('1.0.3', $plugin->getPluginVersion());
         $this->assertEquals('Carmelo Santana', $plugin->getPluginAuthor());
-        $this->assertStringContainsString('>=1.2.47', $plugin->getCompatibleKanboardVersion());
+        // Core's PluginLoader reads getCompatibleVersion(); any other name is never called.
+        $this->assertSame('>=1.2.47', $plugin->getCompatibleVersion());
+        $this->assertFalse(method_exists($plugin, 'getCompatibleKanboardVersion'));
     }
 
     public function testInitializeRegistersRoutes()
@@ -41,7 +43,7 @@ class PluginTest extends Base
         $json = json_decode(file_get_contents(__DIR__ . '/../plugin.json'), true);
         $this->assertIsArray($json);
         $this->assertEquals('Kensho', $json['name']);
-        $this->assertEquals('1.0.2', $json['version']);
+        $this->assertEquals('1.0.3', $json['version']);
         $this->assertArrayNotHasKey('requires', $json);
         // recommends is an array of {plugin, min_version, reason} dep objects —
         // the shape ModMenu's DependencyResolver/PluginManager::normalizeDeps expects.
@@ -49,6 +51,8 @@ class PluginTest extends Base
         $plugins = array_column($json['recommends'], 'plugin');
         $this->assertContains('AiConnector', $plugins);
         $this->assertContains('ShadcnTheme', $plugins);
+        $floors = array_column($json['recommends'], 'min_version', 'plugin');
+        $this->assertSame('1.1.4', $floors['AiConnector']);
     }
 
     /**

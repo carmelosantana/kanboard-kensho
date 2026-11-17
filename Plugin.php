@@ -64,7 +64,7 @@ class Plugin extends Base
 
     public function getPluginVersion()
     {
-        return '1.0.2';
+        return '1.0.3';
     }
 
     public function getPluginHomepage()
@@ -72,7 +72,7 @@ class Plugin extends Base
         return 'https://github.com/carmelosantana/kanboard-kensho';
     }
 
-    public function getCompatibleKanboardVersion()
+    public function getCompatibleVersion()
     {
         return '>=1.2.47';
     }
