@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3 — unreleased
+
+- Fix: `Plugin.php` declared `getCompatibleKanboardVersion()`, which Kanboard core never calls; it is now `getCompatibleVersion()`, so the `>=1.2.47` floor is actually enforced by the plugin loader.
+- The AiConnector recommendation now asks for 1.1.4 or later (was 1.0.0).
+
 ## 1.0.2 — 2026-09-21
 
 - Fix: the profile was written as a single JSON blob into `user_has_metadata.value`, which is `VARCHAR(255)` on MySQL and Postgres. A profile with two focus areas — or one saved reflection — already exceeds that, so saving failed with `SQLSTATE[22001] Data too long for column 'value'` (MySQL 1406), or truncated silently outside strict mode and corrupted the profile. SQLite ignores declared `VARCHAR` lengths, which is why this never showed up in the test harness. Profiles now live in the plugin's own `kensho_profiles` table (`MEDIUMTEXT` on MySQL, `TEXT` on Postgres/SQLite) via a `Schema/` migration.
