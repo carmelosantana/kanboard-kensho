@@ -6,6 +6,7 @@ use Kanboard\Controller\BaseController;
 use Kanboard\Core\Controller\AccessForbiddenException;
 use Kanboard\Plugin\Kensho\Model\KenshoAiGate;
 use Kanboard\Plugin\Kensho\Model\KenshoAiModel;
+use Kanboard\Plugin\Kensho\Model\KenshoAiRefused;
 use Kanboard\Plugin\Kensho\Model\KenshoDataModel;
 use Kanboard\Plugin\Kensho\Model\KenshoProfileModel;
 use Kanboard\Plugin\Kensho\Model\KenshoScoreModel;
@@ -16,7 +17,8 @@ use Kanboard\Plugin\Kensho\Model\KenshoScoreModel;
  * Every action operates on the current user's OWN data (userSession id); there
  * is no project-admin gate (login is enforced by the router). Every mutation
  * calls checkCSRFForm(); the three AI actions additionally require the gate to
- * be open and re-check it (degrade to manual when AiConnector is absent).
+ * be open and re-check it (degrade to manual when AiConnector is absent), and
+ * answer 429 {error} when AiConnector's quota or input cap refuses the call.
  */
 class KenshoController extends BaseController
 {
@@ -129,7 +131,12 @@ class KenshoController extends BaseController
         $userId = $this->userSession->getId();
         $profile = $this->profileModel()->getProfile($userId);
         $aggregate = $this->dataModel()->aggregate($userId, $profile['window_days']);
-        $out = $this->aiModel()->proposeAreas($aggregate, $this->resolveProfileId());
+        try {
+            $out = $this->aiModel()->proposeAreas($aggregate, $this->resolveProfileId());
+        } catch (KenshoAiRefused $e) {
+            $this->response->json(['error' => $e->getMessage()], 429);
+            return;
+        }
         $this->response->json($out);
     }
 
@@ -137,11 +144,16 @@ class KenshoController extends BaseController
     {
         $this->requireAi();
         $this->checkCSRFForm();
-        $out = $this->aiModel()->clarifyGoals(
-            $this->postString('area_label', ''),
-            $this->postString('note', ''),
-            $this->resolveProfileId()
-        );
+        try {
+            $out = $this->aiModel()->clarifyGoals(
+                $this->postString('area_label', ''),
+                $this->postString('note', ''),
+                $this->resolveProfileId()
+            );
+        } catch (KenshoAiRefused $e) {
+            $this->response->json(['error' => $e->getMessage()], 429);
+            return;
+        }
         $this->response->json($out);
     }
 
@@ -160,7 +172,12 @@ class KenshoController extends BaseController
                 $identities[$a['id']] = $a['identity'];
             }
         }
-        $out = $this->aiModel()->reflect($alignment['rows'], $identities, $this->resolveProfileId());
+        try {
+            $out = $this->aiModel()->reflect($alignment['rows'], $identities, $this->resolveProfileId());
+        } catch (KenshoAiRefused $e) {
+            $this->response->json(['error' => $e->getMessage()], 429);
+            return;
+        }
         $this->response->json($out);
     }
 

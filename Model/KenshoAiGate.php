@@ -7,7 +7,8 @@ use Kanboard\Plugin\AiConnector\Model\ProviderRegistry;
 /**
  * KenshoAiGate — single source of truth for "is AI reflection available?".
  *
- * Gate = PHP >= 8.4 AND AiConnector present AND ProviderRegistry::isReady().
+ * Gate = PHP >= 8.4 AND AiConnector present (with its AiQuota spend guard,
+ * 1.3.0+) AND ProviderRegistry::isReady(). An older AiConnector keeps AI off.
  * Consulted identically by Plugin/controller (to hide AI actions) and by every
  * AI route guard, so the UI and the guards never diverge. When closed, Kensho
  * stays fully functional in manual mode.
@@ -27,7 +28,8 @@ class KenshoAiGate
         }
 
         $present = $connectorPresent
-            ?? class_exists(\Kanboard\Plugin\AiConnector\Model\ProviderRegistry::class);
+            ?? (class_exists(\Kanboard\Plugin\AiConnector\Model\ProviderRegistry::class)
+                && class_exists(\Kanboard\Plugin\AiConnector\Model\AiQuota::class));
         if (! $present) {
             return false;
         }

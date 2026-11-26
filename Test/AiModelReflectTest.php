@@ -5,8 +5,18 @@ require_once 'tests/units/Base.php';
 use Kanboard\Plugin\Kensho\Model\KenshoAiModel;
 use KanboardTests\units\Base;
 
+require_once __DIR__ . '/AiQuotaFixture.php';
+
 class AiModelReflectTest extends Base
 {
+    use AiQuotaFixture;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->signInForAi();
+    }
+
     /** Build a KenshoAiModel whose getRegistry() returns a canned structured() result. */
     private function modelReturning(array $canned): KenshoAiModel
     {

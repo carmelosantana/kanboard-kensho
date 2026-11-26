@@ -51,7 +51,7 @@ class KenshoAiModel extends Base
             ['role' => 'user',   'content' => json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)],
         ];
 
-        $raw = $this->safeStructured($messages, $schema, $profileId);
+        $raw = $this->safeStructured($messages, $schema, $profileId, 'kensho.reflect');
 
         return [
             'observations' => self::stringList($raw['observations'] ?? []),
@@ -104,7 +104,7 @@ class KenshoAiModel extends Base
             ['role' => 'user',   'content' => json_encode($aggregate, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)],
         ];
 
-        $raw = $this->safeStructured($messages, $schema, $profileId);
+        $raw = $this->safeStructured($messages, $schema, $profileId, 'kensho.propose');
         $areas = [];
         foreach ((is_array($raw['areas'] ?? null) ? $raw['areas'] : []) as $a) {
             if (! is_array($a)) {
@@ -154,7 +154,7 @@ class KenshoAiModel extends Base
             ['role' => 'user',   'content' => json_encode(['area' => $areaLabel, 'note' => $note], JSON_UNESCAPED_UNICODE)],
         ];
 
-        $raw = $this->safeStructured($messages, $schema, $profileId);
+        $raw = $this->safeStructured($messages, $schema, $profileId, 'kensho.clarify');
         return [
             'identity'            => is_string($raw['identity'] ?? null) ? trim($raw['identity']) : '',
             'goals'               => self::stringList($raw['goals'] ?? []),
@@ -191,9 +191,21 @@ class KenshoAiModel extends Base
     /**
      * Call structured() defensively. Returns [] on any provider error — the
      * caller normalizes []. Never logs the message (may carry provider details).
+     *
+     * AiConnector's shared quota and input cap are checked first, with the
+     * text that will be sent; a refusal throws KenshoAiRefused and the provider
+     * is not called.
+     *
+     * @throws KenshoAiRefused
      */
-    protected function safeStructured(array $messages, string $schema, ?string $profileId): array
+    protected function safeStructured(array $messages, string $schema, ?string $profileId, string $feature): array
     {
+        $refusal = (new \Kanboard\Plugin\AiConnector\Model\AiQuota($this->container))
+            ->consume((int) $this->userSession->getId(), $feature, array_column($messages, 'content'));
+        if ($refusal !== null) {
+            throw new KenshoAiRefused($refusal);
+        }
+
         try {
             $out = $this->getRegistry()->structured($messages, $schema, $profileId);
             return is_array($out) ? $out : [];
