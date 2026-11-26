@@ -110,4 +110,21 @@ class AiQuotaTest extends Base
         $this->assertSame(429, $this->status);
         $this->assertSame(['error' => 'You have reached the AI limit.'], $this->json);
     }
+
+    public function testTheSchemaCountsTowardTheInputCap(): void
+    {
+        $spy = new class {
+            public array $messages = []; public string $schema = '';
+            public function structured(array $m, string $s, ?string $p = null): array { $this->messages = $m; $this->schema = $s; return []; }
+        };
+        $this->registry = $spy;
+        $this->model()->clarifyGoals('Health', 'move more');
+        $messagesOnly = array_sum(array_map(fn ($c) => mb_strlen($c), array_column($spy->messages, 'content')));
+        $this->assertNotSame('', $spy->schema);
+
+        $this->limit(AiQuota::MAX_INPUT_CHARS, (string) $messagesOnly);
+        $this->expectException(KenshoAiRefused::class);
+        $this->model()->clarifyGoals('Health', 'move more');
+    }
+
 }

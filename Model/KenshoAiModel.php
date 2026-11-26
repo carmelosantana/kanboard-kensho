@@ -201,7 +201,7 @@ class KenshoAiModel extends Base
     protected function safeStructured(array $messages, string $schema, ?string $profileId, string $feature): array
     {
         $refusal = (new \Kanboard\Plugin\AiConnector\Model\AiQuota($this->container))
-            ->consume((int) $this->userSession->getId(), $feature, array_column($messages, 'content'));
+            ->consume((int) $this->userSession->getId(), $feature, [...array_column($messages, 'content'), $schema]);
         if ($refusal !== null) {
             throw new KenshoAiRefused($refusal);
         }
