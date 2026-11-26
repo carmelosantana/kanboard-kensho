@@ -11,7 +11,7 @@ class PluginTest extends Base
     {
         $plugin = new Plugin($this->container);
         $this->assertEquals('Kensho', $plugin->getPluginName());
-        $this->assertEquals('1.0.3', $plugin->getPluginVersion());
+        $this->assertEquals('1.0.4', $plugin->getPluginVersion());
         $this->assertEquals('Carmelo Santana', $plugin->getPluginAuthor());
         // Core's PluginLoader reads getCompatibleVersion(); any other name is never called.
         $this->assertSame('>=1.2.47', $plugin->getCompatibleVersion());
@@ -43,7 +43,7 @@ class PluginTest extends Base
         $json = json_decode(file_get_contents(__DIR__ . '/../plugin.json'), true);
         $this->assertIsArray($json);
         $this->assertEquals('Kensho', $json['name']);
-        $this->assertEquals('1.0.3', $json['version']);
+        $this->assertEquals('1.0.4', $json['version']);
         $this->assertArrayNotHasKey('requires', $json);
         // recommends is an array of {plugin, min_version, reason} dep objects —
         // the shape ModMenu's DependencyResolver/PluginManager::normalizeDeps expects.
@@ -52,7 +52,7 @@ class PluginTest extends Base
         $this->assertContains('AiConnector', $plugins);
         $this->assertContains('ShadcnTheme', $plugins);
         $floors = array_column($json['recommends'], 'min_version', 'plugin');
-        $this->assertSame('1.1.4', $floors['AiConnector']);
+        $this->assertSame('1.3.0', $floors['AiConnector']); // AiQuota, the shared AI limits
     }
 
     /**
