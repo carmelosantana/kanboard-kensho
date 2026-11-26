@@ -73,10 +73,17 @@
             body: body.toString()
         }).then(function (r) {
             if (!r.ok) {
-                throw new Error('Request failed: ' + r.status);
+                // A 429 carries AiConnector's refusal (hourly limit or input too long) to show as is.
+                return r.json().catch(function () { return {}; }).then(function (data) {
+                    throw new Error(data && data.error ? data.error : 'Request failed: ' + r.status);
+                });
             }
             return r.json();
         });
+    }
+
+    function showError(err) {
+        window.alert(err && err.message ? err.message : String(err));
     }
 
     // Build + submit a real form (full-page redirect keeps the CSRF/flash flow
@@ -356,7 +363,7 @@
                     function (provider) {
                         post(urls.propose, { provider_profile: provider }, csrf).then(function (res) {
                             renderProposedAreas(root, res);
-                        });
+                        }).catch(showError);
                     }
                 );
             } else if (action === 'clarify') {
@@ -370,7 +377,7 @@
                     function (provider) {
                         post(urls.clarify, { area_label: label, note: note, provider_profile: provider }, csrf).then(function (res) {
                             applyClarified(fieldset, res);
-                        });
+                        }).catch(showError);
                     }
                 );
             } else if (action === 'reflect') {
@@ -380,7 +387,7 @@
                     function (provider) {
                         post(urls.reflect, { provider_profile: provider }, csrf).then(function (res) {
                             applyReflection(root, res, provider);
-                        });
+                        }).catch(showError);
                     }
                 );
             }
