@@ -9,8 +9,14 @@ trait AiQuotaFixture
     private function signInForAi(): int
     {
         $driver = ['sqlite' => 'Sqlite', 'mysql' => 'Mysql', 'postgres' => 'Postgres'][DB_DRIVER];
-        require_once dirname(__DIR__, 2) . "/AiConnector/Schema/$driver.php";
+        $schema = dirname(__DIR__, 2) . "/AiConnector/Schema/$driver.php";
+        if (! is_file($schema)) {
+            // The real-DB runner mounts only the plugin under test; AiQuota itself is covered by AiConnector's own runs.
+            $this->markTestSkipped('AiConnector is not mounted next to Kensho.');
+        }
+        require_once $schema;
         \Kanboard\Plugin\AiConnector\Schema\version_1($this->container['db']->getConnection());
+        \Kanboard\Plugin\AiConnector\Schema\version_2($this->container['db']->getConnection());
 
         $id = (int) $this->container['userModel']->create(['username' => 'ai-user-' . bin2hex(random_bytes(3))]);
         $this->container['userSession'] = new class($id) {
