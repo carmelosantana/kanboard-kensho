@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 — Unreleased
+## 1.1.0 — 2026-11-27
 
 - The AI features (propose areas, clarify goals, reflect) now use AI Connector's model routing: each is registered as its own feature, so an admin can assign a model per feature and the provider picker offers only the profiles routing allows. The AI features need AI Connector 1.4.0 or later; with an older one Kensho stays in manual mode. The AiConnector recommendation asks for 1.4.0.
 
