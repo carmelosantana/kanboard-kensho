@@ -26,6 +26,7 @@ class AiModelReflectTest extends Base
             public $lastSchema;
             public $lastProfile;
             public function __construct($canned) { $this->canned = $canned; }
+            public function resolve(string $f, ?int $p = null, ?string $pick = null): string { return $pick ?? 'default'; }
             public function structured(array $messages, string $schema, ?string $profileId = null): array
             {
                 $this->lastMessages = $messages;

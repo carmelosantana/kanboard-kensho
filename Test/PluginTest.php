@@ -11,11 +11,34 @@ class PluginTest extends Base
     {
         $plugin = new Plugin($this->container);
         $this->assertEquals('Kensho', $plugin->getPluginName());
-        $this->assertEquals('1.0.4', $plugin->getPluginVersion());
+        $this->assertEquals('1.1.0', $plugin->getPluginVersion());
         $this->assertEquals('Carmelo Santana', $plugin->getPluginAuthor());
         // Core's PluginLoader reads getCompatibleVersion(); any other name is never called.
         $this->assertSame('>=1.2.47', $plugin->getCompatibleVersion());
         $this->assertFalse(method_exists($plugin, 'getCompatibleKanboardVersion'));
+    }
+
+    public function testRegistersItsThreeAiFeaturesForModelRouting()
+    {
+        $plugin = new Plugin($this->container);
+        $plugin->initialize();
+
+        $features = [];
+        foreach ($this->container['hook']->getListeners('aiconnector:features') as $listener) {
+            $features = array_merge($features, $listener());
+        }
+        $this->assertSame(['kensho.clarify', 'kensho.propose', 'kensho.reflect'], $this->sortedIds($features));
+        foreach ($features as $f) {
+            $this->assertSame('Kensho', $f['plugin']);
+            $this->assertNotSame('', $f['label']);
+        }
+    }
+
+    private function sortedIds(array $features): array
+    {
+        $ids = array_column($features, 'id');
+        sort($ids);
+        return $ids;
     }
 
     public function testInitializeRegistersRoutes()
@@ -43,7 +66,7 @@ class PluginTest extends Base
         $json = json_decode(file_get_contents(__DIR__ . '/../plugin.json'), true);
         $this->assertIsArray($json);
         $this->assertEquals('Kensho', $json['name']);
-        $this->assertEquals('1.0.4', $json['version']);
+        $this->assertEquals('1.1.0', $json['version']);
         $this->assertArrayNotHasKey('requires', $json);
         // recommends is an array of {plugin, min_version, reason} dep objects —
         // the shape ModMenu's DependencyResolver/PluginManager::normalizeDeps expects.
@@ -52,7 +75,7 @@ class PluginTest extends Base
         $this->assertContains('AiConnector', $plugins);
         $this->assertContains('ShadcnTheme', $plugins);
         $floors = array_column($json['recommends'], 'min_version', 'plugin');
-        $this->assertSame('1.3.0', $floors['AiConnector']); // AiQuota, the shared AI limits
+        $this->assertSame('1.4.0', $floors['AiConnector']); // model routing: ProviderRegistry::resolve()
     }
 
     /**

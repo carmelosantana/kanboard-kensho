@@ -106,7 +106,7 @@
 
     // ── Privacy-summary confirm modal (gates every AI call) ─────────────────
 
-    function openPrivacy(root, summaryText, onConfirm) {
+    function openPrivacy(root, feature, summaryText, onConfirm) {
         var modal = root.querySelector('[data-kensho-privacy]');
         if (!modal) {
             return;
@@ -115,6 +115,15 @@
         if (detail) {
             detail.textContent = summaryText;
         }
+        // Show only this feature's picker; each feature routes to its own models.
+        var activeSelect = null;
+        modal.querySelectorAll('[data-kensho-picker]').forEach(function (box) {
+            var mine = box.getAttribute('data-kensho-picker') === feature;
+            box.hidden = !mine;
+            if (mine) {
+                activeSelect = box.querySelector('select');
+            }
+        });
         modal.hidden = false;
 
         var confirmBtn = modal.querySelector('[data-kensho-privacy-confirm]');
@@ -130,8 +139,7 @@
             cancelBtn.removeEventListener('click', no);
         }
         function ok() {
-            var sel = modal.querySelector('[data-kensho-provider]');
-            var provider = sel ? sel.value : '';
+            var provider = activeSelect ? activeSelect.value : '';
             cleanup();
             onConfirm(provider);
         }
@@ -359,9 +367,10 @@
             } else if (action === 'propose') {
                 openPrivacy(
                     root,
+                    'kensho.propose',
                     'Aggregated dimensions (project/category/tag): task counts, time spent, up to 5 sample task titles each. No task descriptions or comments.',
                     function (provider) {
-                        post(urls.propose, { provider_profile: provider }, csrf).then(function (res) {
+                        post(urls.propose, { ai_profile: provider }, csrf).then(function (res) {
                             renderProposedAreas(root, res);
                         }).catch(showError);
                     }
@@ -373,9 +382,10 @@
                 var note = noteInput ? noteInput.value : '';
                 openPrivacy(
                     root,
+                    'kensho.clarify',
                     'Area: ' + label + '\nYour current note: ' + (note || '(none yet)'),
                     function (provider) {
-                        post(urls.clarify, { area_label: label, note: note, provider_profile: provider }, csrf).then(function (res) {
+                        post(urls.clarify, { area_label: label, note: note, ai_profile: provider }, csrf).then(function (res) {
                             applyClarified(fieldset, res);
                         }).catch(showError);
                     }
@@ -383,9 +393,10 @@
             } else if (action === 'reflect') {
                 openPrivacy(
                     root,
+                    'kensho.reflect',
                     'Your computed discrepancies (stated importance share vs. actual effort share per area) and the desired-self statements you have written so far.',
                     function (provider) {
-                        post(urls.reflect, { provider_profile: provider }, csrf).then(function (res) {
+                        post(urls.reflect, { ai_profile: provider }, csrf).then(function (res) {
                             applyReflection(root, res, provider);
                         }).catch(showError);
                     }

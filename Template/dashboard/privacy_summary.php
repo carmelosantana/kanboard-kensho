@@ -10,22 +10,15 @@
         </ul>
         <div data-kensho-privacy-detail class="kensho-privacy-detail"></div>
 
-        <?php if (! empty($profiles)): ?>
-            <label><?= t('Provider') ?>
-                <select data-kensho-provider>
-                    <?php foreach ($profiles as $p): ?>
-                        <option value="<?= $this->text->e($p['id']) ?>" <?= $p['id'] === $default_profile_id ? 'selected' : '' ?>>
-                            <?= $this->text->e($p['label'] ?? $p['id']) ?>
-                        </option>
-                    <?php endforeach ?>
-                </select>
-            </label>
-        <?php else: ?>
-            <p class="kensho-hint"><?= t('No AI provider is configured.') ?></p>
-        <?php endif ?>
+        <?php /* One picker per feature: each feature routes (and so offers) its own models. JS shows the one for the action. */ ?>
+        <?php foreach ($ai_options as $feature => $options): ?>
+            <div data-kensho-picker="<?= $this->text->e($feature) ?>" hidden>
+                <?= $this->render('AiConnector:picker/select', ['options' => $options, 'name' => 'ai_profile_' . str_replace('.', '_', $feature)]) ?>
+            </div>
+        <?php endforeach ?>
 
         <div class="kbx-toolbar">
-            <button type="button" class="kbx-btn kbx-btn--primary" data-kensho-privacy-confirm <?= empty($profiles) ? 'disabled' : '' ?>><?= t('Send') ?></button>
+            <button type="button" class="kbx-btn kbx-btn--primary" data-kensho-privacy-confirm><?= t('Send') ?></button>
             <button type="button" class="kbx-btn" data-kensho-privacy-cancel><?= t('Cancel') ?></button>
         </div>
     </div>

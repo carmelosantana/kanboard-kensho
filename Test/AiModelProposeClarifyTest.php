@@ -22,6 +22,7 @@ class AiModelProposeClarifyTest extends Base
         $registry = new class($canned) {
             private $canned; public $lastMessages;
             public function __construct($c) { $this->canned = $c; }
+            public function resolve(string $f, ?int $p = null, ?string $pick = null): string { return 'routed'; }
             public function structured(array $m, string $s, ?string $p = null): array { $this->lastMessages = $m; return $this->canned; }
         };
         return new class($this->container, $registry) extends KenshoAiModel {

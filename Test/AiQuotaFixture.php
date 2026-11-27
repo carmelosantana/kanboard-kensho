@@ -9,7 +9,11 @@ trait AiQuotaFixture
     private function signInForAi(): int
     {
         $driver = ['sqlite' => 'Sqlite', 'mysql' => 'Mysql', 'postgres' => 'Postgres'][DB_DRIVER];
-        $schema = dirname(__DIR__, 2) . "/AiConnector/Schema/$driver.php";
+        // Beside the loaded AiConnector, so a worktree checkout of Kensho still finds it.
+        $root = class_exists(\Kanboard\Plugin\AiConnector\Model\AiQuota::class)
+            ? dirname((new \ReflectionClass(\Kanboard\Plugin\AiConnector\Model\AiQuota::class))->getFileName(), 2)
+            : dirname(__DIR__, 2) . '/AiConnector';
+        $schema = "$root/Schema/$driver.php";
         if (! is_file($schema)) {
             // The real-DB runner mounts only the plugin under test; AiQuota itself is covered by AiConnector's own runs.
             $this->markTestSkipped('AiConnector is not mounted next to Kensho.');

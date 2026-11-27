@@ -29,5 +29,5 @@
         <?= $this->render('Kensho:dashboard/reflection', ['profile' => $profile, 'alignment' => $alignment, 'ai_ready' => $ai_ready]) ?>
     </section>
 
-    <?= $this->render('Kensho:dashboard/privacy_summary', ['profiles' => $profiles, 'default_profile_id' => $default_profile_id]) ?>
+    <?= $this->render('Kensho:dashboard/privacy_summary', ['ai_options' => $ai_options]) ?>
 </div>

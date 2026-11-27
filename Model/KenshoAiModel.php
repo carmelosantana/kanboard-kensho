@@ -29,7 +29,7 @@ class KenshoAiModel extends Base
      * @param array $identities    map area_id => desired-self statement
      * @return array{observations: string[], questions: string[], gentle_note: string}
      */
-    public function reflect(array $discrepancies, array $identities, ?string $profileId = null): array
+    public function reflect(array $discrepancies, array $identities, ?string $pick = null): array
     {
         $schema = json_encode([
             'type'       => 'object',
@@ -51,7 +51,7 @@ class KenshoAiModel extends Base
             ['role' => 'user',   'content' => json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)],
         ];
 
-        $raw = $this->safeStructured($messages, $schema, $profileId, 'kensho.reflect');
+        $raw = $this->safeStructured($messages, $schema, $pick, 'kensho.reflect');
 
         return [
             'observations' => self::stringList($raw['observations'] ?? []),
@@ -67,7 +67,7 @@ class KenshoAiModel extends Base
      *
      * @return array{areas: array<int, array{label:string, rationale:string, dimension_refs: array<int, array{type:string,id:int}>, importance_hint: int|null}>}
      */
-    public function proposeAreas(array $aggregate, ?string $profileId = null): array
+    public function proposeAreas(array $aggregate, ?string $pick = null): array
     {
         $schema = json_encode([
             'type'       => 'object',
@@ -104,7 +104,7 @@ class KenshoAiModel extends Base
             ['role' => 'user',   'content' => json_encode($aggregate, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)],
         ];
 
-        $raw = $this->safeStructured($messages, $schema, $profileId, 'kensho.propose');
+        $raw = $this->safeStructured($messages, $schema, $pick, 'kensho.propose');
         $areas = [];
         foreach ((is_array($raw['areas'] ?? null) ? $raw['areas'] : []) as $a) {
             if (! is_array($a)) {
@@ -137,7 +137,7 @@ class KenshoAiModel extends Base
      *
      * @return array{identity:string, goals: string[], reflection_question:string}
      */
-    public function clarifyGoals(string $areaLabel, string $note, ?string $profileId = null): array
+    public function clarifyGoals(string $areaLabel, string $note, ?string $pick = null): array
     {
         $schema = json_encode([
             'type'       => 'object',
@@ -154,7 +154,7 @@ class KenshoAiModel extends Base
             ['role' => 'user',   'content' => json_encode(['area' => $areaLabel, 'note' => $note], JSON_UNESCAPED_UNICODE)],
         ];
 
-        $raw = $this->safeStructured($messages, $schema, $profileId, 'kensho.clarify');
+        $raw = $this->safeStructured($messages, $schema, $pick, 'kensho.clarify');
         return [
             'identity'            => is_string($raw['identity'] ?? null) ? trim($raw['identity']) : '',
             'goals'               => self::stringList($raw['goals'] ?? []),
@@ -197,9 +197,16 @@ class KenshoAiModel extends Base
      * is not called.
      *
      * @throws KenshoAiRefused
+     * @throws KenshoAiUnavailable
      */
-    protected function safeStructured(array $messages, string $schema, ?string $profileId, string $feature): array
+    protected function safeStructured(array $messages, string $schema, ?string $pick, string $feature): array
     {
+        // The posted pick is only a request: model routing decides the profile (personal scope, no project).
+        $profileId = $this->getRegistry()->resolve($feature, null, $pick);
+        if ($profileId === '') {
+            throw new KenshoAiUnavailable('No AI model is available for ' . $feature);
+        }
+
         $refusal = (new \Kanboard\Plugin\AiConnector\Model\AiQuota($this->container))
             ->consume((int) $this->userSession->getId(), $feature, [...array_column($messages, 'content'), $schema]);
         if ($refusal !== null) {

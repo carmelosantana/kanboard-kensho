@@ -26,6 +26,13 @@ class Plugin extends Base
         $this->route->addRoute('kensho/clarify', 'KenshoController', 'clarify', 'Kensho');
         $this->route->addRoute('kensho/reflect', 'KenshoController', 'reflect', 'Kensho');
 
+        // ── AI features for AiConnector's model routing (the hook is core, so this is safe without it) ──
+        $this->hook->on('aiconnector:features', fn () => [
+            ['id' => 'kensho.propose', 'label' => t('Propose life areas'), 'plugin' => 'Kensho'],
+            ['id' => 'kensho.clarify', 'label' => t('Clarify goals'), 'plugin' => 'Kensho'],
+            ['id' => 'kensho.reflect', 'label' => t('Reflect on alignment'), 'plugin' => 'Kensho'],
+        ]);
+
         // ── Entry-point link in the header user dropdown ──
         $this->template->hook->attach('template:header:dropdown', 'Kensho:header_dropdown');
 
@@ -64,7 +71,7 @@ class Plugin extends Base
 
     public function getPluginVersion()
     {
-        return '1.0.4';
+        return '1.1.0';
     }
 
     public function getPluginHomepage()

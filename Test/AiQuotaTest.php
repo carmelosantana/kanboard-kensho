@@ -28,7 +28,8 @@ class AiQuotaTest extends Base
         $this->userId = $this->signInForAi();
         $this->registry = new class {
             public int $calls = 0;
-            public function structured(array $m, string $s, ?string $p = null): array { $this->calls++; return ['identity' => 'x', 'goals' => [], 'reflection_question' => '']; }
+            public function resolve(string $f, ?int $p = null, ?string $pick = null): string { return 'routed'; }
+                        public function structured(array $m, string $s, ?string $p = null): array { $this->calls++; return ['identity' => 'x', 'goals' => [], 'reflection_question' => '']; }
         };
     }
 
@@ -115,7 +116,8 @@ class AiQuotaTest extends Base
     {
         $spy = new class {
             public array $messages = []; public string $schema = '';
-            public function structured(array $m, string $s, ?string $p = null): array { $this->messages = $m; $this->schema = $s; return []; }
+            public function resolve(string $f, ?int $p = null, ?string $pick = null): string { return 'routed'; }
+                        public function structured(array $m, string $s, ?string $p = null): array { $this->messages = $m; $this->schema = $s; return []; }
         };
         $this->registry = $spy;
         $this->model()->clarifyGoals('Health', 'move more');

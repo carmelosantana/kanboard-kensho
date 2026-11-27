@@ -1,14 +1,14 @@
 {
     "name": "Kensho",
     "description": "A private, per-user reflection companion: mine your own Kanboard activity, record who you want to be, and reflect on whether the two align — with an LLM as a collaborator, never an authority.",
-    "version": "1.0.4",
+    "version": "1.1.0",
     "author": "Carmelo Santana",
     "license": "MIT",
     "homepage": "https://github.com/carmelosantana/kanboard-kensho",
     "kanboard_version": ">=1.2.47",
     "php_version": ">=8.4",
     "recommends": [
-        { "plugin": "AiConnector", "min_version": "1.3.0", "reason": "AI-assisted area proposal, goal clarification, and reflective narrative (Kensho works fully manually without it)" },
+        { "plugin": "AiConnector", "min_version": "1.4.0", "reason": "AI-assisted area proposal, goal clarification, and reflective narrative (Kensho works fully manually without it)" },
         { "plugin": "ShadcnTheme", "min_version": "1.1.0", "reason": "themed styling via the kbx-* primitives" }
     ]
 }

@@ -7,6 +7,7 @@ use Kanboard\Core\Controller\AccessForbiddenException;
 use Kanboard\Plugin\Kensho\Model\KenshoAiGate;
 use Kanboard\Plugin\Kensho\Model\KenshoAiModel;
 use Kanboard\Plugin\Kensho\Model\KenshoAiRefused;
+use Kanboard\Plugin\Kensho\Model\KenshoAiUnavailable;
 use Kanboard\Plugin\Kensho\Model\KenshoDataModel;
 use Kanboard\Plugin\Kensho\Model\KenshoProfileModel;
 use Kanboard\Plugin\Kensho\Model\KenshoScoreModel;
@@ -22,6 +23,9 @@ use Kanboard\Plugin\Kensho\Model\KenshoScoreModel;
  */
 class KenshoController extends BaseController
 {
+    /** Feature ids registered with AiConnector's model routing (Plugin::initialize()). */
+    public const AI_FEATURES = ['kensho.propose', 'kensho.clarify', 'kensho.reflect'];
+
     // ── Dashboard ──────────────────────────────────────────────────────────────
 
     public function show(): void
@@ -32,12 +36,13 @@ class KenshoController extends BaseController
         $alignment = KenshoScoreModel::alignment($profile['areas'], $aggregate['dimensions']);
 
         $aiReady = $this->isAiEnabled();
-        $profiles = [];
-        $defaultProfileId = '';
+        // One picker per AI feature: each has its own routing, so each gets its own options (no project).
+        $aiOptions = [];
         if ($aiReady) {
             $registry = new \Kanboard\Plugin\AiConnector\Model\ProviderRegistry($this->container);
-            $profiles = $registry->listProfiles();
-            $defaultProfileId = $registry->getDefaultProfileId();
+            foreach (self::AI_FEATURES as $feature) {
+                $aiOptions[$feature] = $registry->pickerOptions($feature, null);
+            }
         }
 
         $this->response->html($this->helper->layout->app('Kensho:dashboard/show', [
@@ -46,8 +51,7 @@ class KenshoController extends BaseController
             'aggregate'          => $aggregate,
             'alignment'          => $alignment,
             'ai_ready'           => $aiReady,
-            'profiles'           => $profiles,
-            'default_profile_id' => $defaultProfileId,
+            'ai_options'         => $aiOptions,
         ]));
     }
 
@@ -132,10 +136,12 @@ class KenshoController extends BaseController
         $profile = $this->profileModel()->getProfile($userId);
         $aggregate = $this->dataModel()->aggregate($userId, $profile['window_days']);
         try {
-            $out = $this->aiModel()->proposeAreas($aggregate, $this->resolveProfileId());
+            $out = $this->aiModel()->proposeAreas($aggregate, $this->postedPick());
         } catch (KenshoAiRefused $e) {
             $this->response->json(['error' => $e->getMessage()], 429);
             return;
+        } catch (KenshoAiUnavailable $e) {
+            throw new AccessForbiddenException();
         }
         $this->response->json($out);
     }
@@ -148,11 +154,13 @@ class KenshoController extends BaseController
             $out = $this->aiModel()->clarifyGoals(
                 $this->postString('area_label', ''),
                 $this->postString('note', ''),
-                $this->resolveProfileId()
+                $this->postedPick()
             );
         } catch (KenshoAiRefused $e) {
             $this->response->json(['error' => $e->getMessage()], 429);
             return;
+        } catch (KenshoAiUnavailable $e) {
+            throw new AccessForbiddenException();
         }
         $this->response->json($out);
     }
@@ -173,10 +181,12 @@ class KenshoController extends BaseController
             }
         }
         try {
-            $out = $this->aiModel()->reflect($alignment['rows'], $identities, $this->resolveProfileId());
+            $out = $this->aiModel()->reflect($alignment['rows'], $identities, $this->postedPick());
         } catch (KenshoAiRefused $e) {
             $this->response->json(['error' => $e->getMessage()], 429);
             return;
+        } catch (KenshoAiUnavailable $e) {
+            throw new AccessForbiddenException();
         }
         $this->response->json($out);
     }
@@ -196,16 +206,11 @@ class KenshoController extends BaseController
         return KenshoAiGate::isReady($this->container);
     }
 
-    /** Validate the posted provider profile id against known ids (else null). */
-    private function resolveProfileId(): ?string
+    /** The posted AI profile pick; model routing validates it (KenshoAiModel resolves it), never trust it as is. */
+    private function postedPick(): ?string
     {
-        $profileId = trim($this->postString('provider_profile', ''));
-        if ($profileId === '') {
-            return null;
-        }
-        $registry = new \Kanboard\Plugin\AiConnector\Model\ProviderRegistry($this->container);
-        $known = array_column($registry->listProfiles(), 'id');
-        return in_array($profileId, $known, true) ? $profileId : null;
+        $pick = trim($this->postString('ai_profile', ''));
+        return $pick === '' ? null : $pick;
     }
 
     private function decodeJsonParam(string $name)
